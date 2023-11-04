@@ -6,14 +6,10 @@ const mysql = require("mysql");
 app.use(cors());
 
 const con = mysql.createConnection({
-  host: "192.168.0.21",
+  host: "mysql.home.lan",
   user: "root",
   password: "raspberry",
   database: "homemedia",
-});
-
-app.get('/', (req, res) => {
-  console.log('hello world');
 });
 
 app.get("/api/search/:searchTerm", function (req, res) {
@@ -48,4 +44,4 @@ app.get("/api/video/:id", function (req, res) {
   });
 });
 
-app.listen(8081, () => console.log('ruimmmoigh'));
+app.listen(8081, () => console.log('Listening on port 8081'));
