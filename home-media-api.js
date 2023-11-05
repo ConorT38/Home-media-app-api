@@ -27,8 +27,8 @@ app.get("/api/search/:searchTerm", function (req, res) {
       if (err) throw err;
       console.log(result);
       res.send(result);
-      
-      connection.releaseConnection();
+
+      connection.release();
     });
   });
 });
@@ -49,7 +49,7 @@ app.get("/api/top/media", function (req, res) {
       console.log(result);
       res.send(result);
 
-      connection.releaseConnection();
+      connection.release();
     });
   });
 });
@@ -74,7 +74,7 @@ app.get("/api/video/:id", function (req, res) {
       console.log(result);
       res.send(result);
 
-      connection.releaseConnection();
+      connection.release();
     });
   });
 });
@@ -97,7 +97,7 @@ app.post("/api/video/:id", function (req, res) {
       console.log(result.affectedRows + " record(s) updated");
       res.send(req.body);
 
-      connection.releaseConnection();
+      connection.release();
     });
   });
 });
