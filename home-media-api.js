@@ -27,7 +27,8 @@ app.get("/api/search/:searchTerm", function (req, res) {
       if (err) throw err;
       console.log(result);
       res.send(result);
-      con.releaseConnection();
+      
+      connection.releaseConnection();
     });
   });
 });
@@ -47,6 +48,8 @@ app.get("/api/top/media", function (req, res) {
       }
       console.log(result);
       res.send(result);
+
+      connection.releaseConnection();
     });
   });
 });
@@ -70,6 +73,8 @@ app.get("/api/video/:id", function (req, res) {
       }
       console.log(result);
       res.send(result);
+
+      connection.releaseConnection();
     });
   });
 });
@@ -80,11 +85,10 @@ app.post("/api/video/:id", function (req, res) {
       console.error("Error getting database connection", err);
       return res.status(500).json({ error: "Database error" });
     }
-    
+
     const id = req.params.id;
     const title = req.body.title;
-    var sql =
-      "UPDATE videos SET title = ? WHERE id = ?";
+    var sql = "UPDATE videos SET title = ? WHERE id = ?";
     connection.query(sql, [title, id], function (err, result) {
       if (err) {
         console.error("Error updating video", err);
@@ -92,6 +96,8 @@ app.post("/api/video/:id", function (req, res) {
       }
       console.log(result.affectedRows + " record(s) updated");
       res.send(req.body);
+
+      connection.releaseConnection();
     });
   });
 });
