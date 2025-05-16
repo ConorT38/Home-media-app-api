@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const dbConfig = {
-  host: "mysql.home.lan",
+  host: "192.168.0.23",
   user: "root",
   password: "raspberry",
   database: "homemedia",
