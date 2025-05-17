@@ -2,10 +2,24 @@ const express = require("express");
 var cors = require("cors");
 const app = express();
 const mysql = require("mysql2");
+const fs = require("fs");
+const path = require("path");
+const rfs = require("rotating-file-stream");
 
 app.use(cors());
 app.use(express.json());
+// Create a rotating write stream
+const logDirectory = path.join(__dirname, "logs");
+fs.existsSync(logDirectory) || fs.mkdirSync(logDirectory);
 
+const accessLogStream = rfs.createStream("access.log", {
+  size: "5M", // rotate every 5MB
+  interval: "1d", // rotate daily
+  path: logDirectory,
+});
+
+// Middleware to log requests
+app.use(require("morgan")("combined", { stream: accessLogStream }));
 const dbConfig = {
   host: "192.168.0.23",
   user: "root",
