@@ -9,8 +9,8 @@ const rfs = require("rotating-file-stream");
 app.use(cors());
 app.use(express.json());
 // Create a rotating write stream
-const logDirectory = path.join(__dirname, "logs");
-fs.existsSync(logDirectory) || fs.mkdirSync(logDirectory);
+const logDirectory = "/var/log/home-media-api";
+fs.existsSync(logDirectory) || fs.mkdirSync(logDirectory, { recursive: true });
 
 const accessLogStream = rfs.createStream("access.log", {
   size: "5M", // rotate every 5MB
