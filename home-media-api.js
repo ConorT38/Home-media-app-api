@@ -86,7 +86,7 @@ app.get("/api/video/:id", async function (req, res) {
   }
 });
 
-app.post("/api/video/:id", async function (req, res) {
+app.put("/api/video/:id", async function (req, res) {
   try {
     const id = req.params.id;
     const { title } = req.body;
