@@ -2,9 +2,12 @@
   "name": "home-media-app-api",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dist/home-media-api.js",
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",
@@ -14,6 +17,14 @@
     "morgan": "^1.10.0",
     "mysql": "^2.18.1",
     "mysql2": "^3.0.0",
-    "rotating-file-stream": "^3.2.6"
+    "rotating-file-stream": "^3.2.6",
+    "thepiratebay": "^1.4.8",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.18",
+    "@types/express": "^5.0.2",
+    "@types/morgan": "^1.9.9",
+    "@types/thepiratebay": "^1.4.6"
   }
 }
