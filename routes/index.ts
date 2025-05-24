@@ -5,8 +5,8 @@ import searchRouter from "./search.js";
 
 const router = Router();
 
-router.use("/shows", showsRouter);
-router.use("/videos", videosRouter);
+router.use("/show", showsRouter);
+router.use("/video", videosRouter);
 router.use("/search", searchRouter);
 
 export default router;
