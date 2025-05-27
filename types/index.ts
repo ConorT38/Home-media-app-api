@@ -143,3 +143,15 @@ export interface Episode {
      */
     videoId: number;
 }
+
+export type Torrent = {
+    id: number;
+    done: string;
+    have: string;
+    eta: string;
+    up: number;
+    down: number;
+    ratio: number;
+    status: string;
+    name: string;
+};

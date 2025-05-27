@@ -1,7 +1,27 @@
 import { Router, Request, Response } from "express";
 import { exec } from "child_process";
+import { mapToJsonArray } from "../utils/mapper.js";
 
 const router = Router();
+
+router.get("/", async (req: Request, res: Response) => {
+    try {
+        const command = `transmission-remote --auth pi:raspberry -l`;
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing command: ${stderr}`);
+                res.status(500).json({ error: "Failed to retrieve torrent status" });
+                return;
+            }
+
+            res.json(mapToJsonArray(stdout));
+        });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
 
 router.get("/search", async (req: Request, res: Response) => {
     try {
