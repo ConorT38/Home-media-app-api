@@ -33,12 +33,12 @@ router.post("/download", async (req: Request, res: Response) => {
             res.status(400).json({ error: "Missing required body parameter: magnetLink" });
         }
 
-        const command = `transmission-remote -a "${magnetLink}"`;
+        const command = `transmission-remote --auth pi:raspberry -a "${magnetLink}" -w "/mnt/ext1/torrents"`;
 
         exec(command, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing command: ${stderr}`);
-                return res.status(500).json({ error: "Failed to add torrent" });
+                res.status(500).json({ error: "Failed to add torrent" });
             }
 
             res.json({ message: "Torrent added successfully", output: stdout });
