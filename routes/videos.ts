@@ -65,4 +65,23 @@ router.put("/:id",
     }
 );
 
+router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = req.params.id;
+        const sql = "DELETE FROM videos WHERE id = ?";
+        const result = await executeQuery<OkPacket>(sql, [id]);
+
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: "Video not found" });
+            return;
+        }
+
+        res.json({ message: "Video deleted successfully" });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
 export default router;
