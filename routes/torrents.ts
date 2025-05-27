@@ -27,7 +27,7 @@ router.get("/search", async (req: Request, res: Response) => {
 
 router.post("/download", async (req: Request, res: Response) => {
     try {
-        const magnetLink = req.body.magnetLink as string;
+        const magnetLink = req.body.magnetUri as string;
 
         if (!magnetLink) {
             res.status(400).json({ error: "Missing required body parameter: magnetLink" });
