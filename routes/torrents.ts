@@ -48,13 +48,23 @@ router.get("/search", async (req: Request, res: Response) => {
 router.post("/download", async (req: Request, res: Response) => {
     try {
         const magnetLink = req.body.magnetUri as string;
+        const category = req.body.category as string;
 
         if (!magnetLink) {
             res.status(400).json({ error: "Missing required body parameter: magnetLink" });
             return;
         }
 
-        const command = `transmission-remote --auth pi:raspberry -a "${magnetLink}" -w "/mnt/ext1/torrents"`;
+        var storageLocation = "/mnt/ext1/torrents";
+        switch (category.toLocaleLowerCase()) {
+            case "movies":
+                storageLocation = "/mnt/ext1/torrents/movies";
+                break;
+            case "shows":
+                storageLocation = "/mnt/ext1/torrents/tv";
+                break;
+        }
+        const command = `transmission-remote --auth pi:raspberry -a "${magnetLink}" -w "${storageLocation}"`;
         console.log(`Executing command: ${command}`);
         exec(command, (error, stdout, stderr) => {
             if (error) {
