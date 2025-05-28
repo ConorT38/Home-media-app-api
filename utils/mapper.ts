@@ -1,12 +1,12 @@
 import { Torrent } from "../types/index.js";
 
 export function mapToJsonArray(input: string): Torrent[] {
-    const lines = input.split('\n').filter(line => line.trim() && !line.startsWith('Sum:'));
+    const lines = input.split('\n').slice(1).filter(line => line.trim() && !line.startsWith('Sum:'));
     const result: Torrent[] = [];
 
     for (const line of lines) {
         const match = line.match(
-            /^\s*(\d+)\s+(\d+%)\s+([\d.]+\s\w+)\s+([\w\s]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\w &]+)\s+(.+)$/
+            /^\s*(\d+)\s{2,}(\d+%)\s{2,}([\d.]+\s\w+)\s{2,}([\w\s]+)\s{2,}([\d.]+)\s{2,}([\d.]+)\s{2,}([\d.]+)\s{2,}([\w &]+)\s{2,}(.+)$/
         );
 
         if (match) {
