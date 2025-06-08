@@ -10,10 +10,10 @@ router.get("/", async (req: Request, res: Response) => {
         const limit = 20; // Number of items per page
         const offset = (page - 1) * limit;
 
-        const sql = "SELECT * FROM videos ORDER BY id LIMIT ? OFFSET ?";
+        const sql = "SELECT * FROM images ORDER BY id LIMIT ? OFFSET ?";
         const result = await executeQuery<RowDataPacket[]>(sql, [limit, offset]);
 
-        const countSql = "SELECT COUNT(*) as total FROM videos";
+        const countSql = "SELECT COUNT(*) as total FROM images";
         const countResult = await executeQuery<RowDataPacket[]>(countSql);
         const total = countResult[0].total;
 
@@ -33,21 +33,10 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-
-        // Increment the views count
-        const updateViewsSql = "UPDATE videos SET views = views + 1 WHERE id = ?";
-        await executeQuery<OkPacket>(updateViewsSql, [id]);
-
-        // Fetch the updated video record
-        const sql = "SELECT * FROM videos WHERE id = ?";
+        const sql = "SELECT * FROM images WHERE id = ?";
         const result = await executeQuery<RowDataPacket[]>(sql, [id]);
-
-        if (result.length === 0) {
-            res.status(404).json({ error: "Video not found" });
-            return;
-        }
-
-        res.json(result[0]);
+        console.log(result);
+        res.send(result);
     } catch (error: any) {
         res
             .status(error.status || 500)
@@ -64,7 +53,7 @@ router.put("/:id",
                 res.status(400).json({ error: "Missing 'title' in request body" });
                 return;
             }
-            const sql = "UPDATE videos SET title = ? WHERE id = ?";
+            const sql = "UPDATE images SET title = ? WHERE id = ?";
             const result = await executeQuery<OkPacket>(sql, [title, id]);
             console.log(`${result.affectedRows} record(s) updated`);
             res.send(req.body);
@@ -79,15 +68,15 @@ router.put("/:id",
 router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
     try {
         const id = req.params.id;
-        const sql = "DELETE FROM videos WHERE id = ?";
+        const sql = "DELETE FROM images WHERE id = ?";
         const result = await executeQuery<OkPacket>(sql, [id]);
 
         if (result.affectedRows === 0) {
-            res.status(404).json({ error: "Video not found" });
+            res.status(404).json({ error: "Image not found" });
             return;
         }
 
-        res.json({ message: "Video deleted successfully" });
+        res.json({ message: "Image deleted successfully" });
     } catch (error: any) {
         res
             .status(error.status || 500)

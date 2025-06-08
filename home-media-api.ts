@@ -32,7 +32,7 @@ app.use("/api", routes);
 
 app.get("/api/top/media", async (req: Request, res: Response) => {
   try {
-    const sql = "SELECT * FROM videos ORDER BY id DESC LIMIT 21";
+    const sql = "SELECT * FROM videos ORDER BY views DESC LIMIT 21";
     const result = await executeQuery<RowDataPacket[]>(sql);
     console.log(result);
 
