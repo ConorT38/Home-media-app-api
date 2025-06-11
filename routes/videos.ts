@@ -96,6 +96,80 @@ router.put("/:id",
     }
 );
 
+router.put("/tag/:id", async (req: Request, res: Response): Promise<void> => {
+    try {
+        const videoId = req.params.id;
+        const tags: string[] = req.body.tags;
+
+        if (!Array.isArray(tags)) {
+            res.status(400).json({ error: "'tags' must be an array of strings" });
+            return;
+        }
+
+        // 1. Get all existing tags for the video
+        const existingSql = `
+            SELECT t.id, t.tag
+            FROM media_tags mt
+            JOIN tags t ON mt.tag_id = t.id
+            WHERE mt.media_type = 'video' AND mt.media_id = ?
+        `;
+        const existingTags = await executeQuery<RowDataPacket[]>(existingSql, [videoId]);
+        const existingTagMap = new Map(existingTags.map((row: any) => [row.tag, row.id]));
+
+        // 2. Ensure all tags exist in tags table, insert if missing
+        let tagIds: number[] = [];
+        for (const tag of tags) {
+            if (existingTagMap.has(tag)) {
+                tagIds.push(existingTagMap.get(tag));
+                continue;
+            }
+            // Try to insert, ignore duplicate error
+            const insertTagSql = "INSERT IGNORE INTO tags (tag) VALUES (?)";
+            await executeQuery<OkPacket>(insertTagSql, [tag]);
+            // Get tag id
+            const getTagIdSql = "SELECT id FROM tags WHERE tag = ?";
+            const tagRows = await executeQuery<RowDataPacket[]>(getTagIdSql, [tag]);
+            if (tagRows.length > 0) {
+                tagIds.push(tagRows[0].id);
+            }
+        }
+
+        // 3. Remove tags not in the new list
+        const tagsToRemove = existingTags
+            .filter((row: any) => !tags.includes(row.tag))
+            .map((row: any) => row.id);
+        if (tagsToRemove.length > 0) {
+            const removeSql = `
+                DELETE FROM media_tags
+                WHERE media_type = 'video' AND media_id = ? AND tag_id IN (${tagsToRemove.map(() => '?').join(',')})
+            `;
+            await executeQuery<OkPacket>(removeSql, [videoId, ...tagsToRemove]);
+        }
+
+        // 4. Add new tags not already present
+        const existingTagIds = existingTags.map((row: any) => row.id);
+        const tagsToAdd = tagIds.filter(id => !existingTagIds.includes(id));
+        if (tagsToAdd.length > 0) {
+            const insertValues = tagsToAdd.map(() => "(?, 'video', ?)").join(",");
+            const insertParams: any[] = [];
+            tagsToAdd.forEach(tagId => {
+                insertParams.push(tagId, videoId);
+            });
+            const insertSql = `
+                INSERT INTO media_tags (tag_id, media_type, media_id)
+                VALUES ${insertValues}
+            `;
+            await executeQuery<OkPacket>(insertSql, insertParams);
+        }
+
+        res.json({ message: "Tags updated successfully" });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
 router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
     try {
         const id = req.params.id;
