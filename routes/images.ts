@@ -108,9 +108,11 @@ router.put("/:id",
                 res.status(400).json({ error: "Missing 'title' in request body" });
                 return;
             }
+            // Update the images table
             const sql = "UPDATE images SET title = ? WHERE id = ?";
             const result = await executeQuery<OkPacket>(sql, [title, id]);
             console.log(`${result.affectedRows} record(s) updated`);
+
             res.send(req.body);
         } catch (error: any) {
             res

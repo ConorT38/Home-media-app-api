@@ -34,6 +34,12 @@ export interface Video {
      * This property is optional and can be null.
      */
     entertainmentType?: string | null;
+
+    /**
+     * The unique identifier for the thumbnail image associated with the video.
+     * This property is optional and can be null.
+     */
+    thumbnailSrc?: string | null;
 }
 
 /**

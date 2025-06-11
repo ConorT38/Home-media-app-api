@@ -10,7 +10,13 @@ router.get("/", async (req: Request, res: Response) => {
         const limit = 20; // Number of items per page
         const offset = (page - 1) * limit;
 
-        const sql = "SELECT * FROM videos ORDER BY id LIMIT ? OFFSET ?";
+        const sql = `
+            SELECT videos.*, images.cdn_path
+            FROM videos
+            LEFT JOIN images ON videos.thumbnail_image_id = images.id
+            ORDER BY videos.id
+            LIMIT ? OFFSET ?
+        `;
         const result = await executeQuery<RowDataPacket[]>(sql, [limit, offset]);
 
         const countSql = "SELECT COUNT(*) as total FROM videos";
@@ -59,16 +65,26 @@ router.put("/:id",
     async (req: Request, res: Response): Promise<void> => {
         try {
             const id = req.params.id;
-            const { title } = req.body;
+            const { title, thumbnailId, filename, filePath, mediaType} = req.body;
             if (title === undefined) {
                 res.status(400).json({ error: "Missing 'title' in request body" });
                 return;
             }
-            const sql = "UPDATE videos SET title = ? WHERE id = ?";
+            let sql: string;
+            let params: any[];
+            if (thumbnailId !== undefined) {
+                sql = "UPDATE videos SET title = ?, thumbnailId = ? WHERE id = ?";
+                params = [title, thumbnailId, id];
+            } else {
+                sql = "UPDATE videos SET title = ? WHERE id = ?";
+                params = [title, id];
+            }
             const result = await executeQuery<OkPacket>(sql, [title, id]);
             console.log(`${result.affectedRows} record(s) updated`);
+
             res.send(req.body);
         } catch (error: any) {
+            console.error(error);
             res
                 .status(error.status || 500)
                 .json({ error: error.message || "An unexpected error occurred" });
