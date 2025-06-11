@@ -11,9 +11,9 @@ router.get("/", async (req: Request, res: Response) => {
         const offset = (page - 1) * limit;
 
         const sql = `
-            SELECT videos.*, images.cdn_path
+            SELECT videos.*, images.cdn_path as thumbnail_cdn_path
             FROM videos
-            LEFT JOIN images ON videos.thumbnail_image_id = images.id
+            LEFT JOIN images ON videos.thumbnail_id = images.id
             ORDER BY videos.id
             LIMIT ? OFFSET ?
         `;
@@ -45,7 +45,10 @@ router.get("/:id", async (req: Request, res: Response) => {
         await executeQuery<OkPacket>(updateViewsSql, [id]);
 
         // Fetch the updated video record
-        const sql = "SELECT * FROM videos WHERE id = ?";
+        const sql = `SELECT videos.*, images.cdn_path as thumbnail_cdn_path
+            FROM videos
+            LEFT JOIN images ON videos.thumbnail_id = images.id
+            WHERE videos.id = ?`;
         const result = await executeQuery<RowDataPacket[]>(sql, [id]);
 
         if (result.length === 0) {
@@ -65,7 +68,8 @@ router.put("/:id",
     async (req: Request, res: Response): Promise<void> => {
         try {
             const id = req.params.id;
-            const { title, thumbnailId, filename, filePath, mediaType} = req.body;
+            const { title, thumbnailId} = req.body;
+            console.log("Updating video with ID:", id, "Title:", title, "Thumbnail ID:", thumbnailId);
             if (title === undefined) {
                 res.status(400).json({ error: "Missing 'title' in request body" });
                 return;
@@ -73,13 +77,13 @@ router.put("/:id",
             let sql: string;
             let params: any[];
             if (thumbnailId !== undefined) {
-                sql = "UPDATE videos SET title = ?, thumbnailId = ? WHERE id = ?";
+                sql = "UPDATE videos SET title = ?, thumbnail_id = ? WHERE id = ?";
                 params = [title, thumbnailId, id];
             } else {
                 sql = "UPDATE videos SET title = ? WHERE id = ?";
                 params = [title, id];
             }
-            const result = await executeQuery<OkPacket>(sql, [title, id]);
+            const result = await executeQuery<OkPacket>(sql, params);
             console.log(`${result.affectedRows} record(s) updated`);
 
             res.send(req.body);
