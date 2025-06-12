@@ -11,7 +11,11 @@ router.get("/", async (req: Request, res: Response) => {
         const limit = 20; // Number of items per page
         const offset = (page - 1) * limit;
 
-        const sql = "SELECT * FROM shows ORDER BY id LIMIT ? OFFSET ?";
+        const sql = ` 
+            SELECT shows.*, images.cdn_path as thumbnail_cdn_path
+            FROM shows
+            LEFT JOIN images ON shows.thumbnail_id = images.id
+            ORDER BY id LIMIT ? OFFSET ?`;
         const result = (await executeQuery<RowDataPacket[]>(sql, [limit, offset])) as Show[];
 
         const countSql = "SELECT COUNT(*) as total FROM shows";
@@ -33,20 +37,34 @@ router.get("/", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, thumbnail_id } = req.body;
 
         if (!name || !description) {
             res.status(400).json({ error: "Missing 'name' or 'description' in request body" });
             return;
         }
 
-        const sql = "INSERT INTO shows (name, description) VALUES (?, ?)";
-        const result = await executeQuery<OkPacket>(sql, [name, description]);
+        let sql = "INSERT INTO shows (name, description";
+        const values: (string | number)[] = [name, description];
+
+        if (thumbnail_id) {
+            sql += ", thumbnail_id";
+            values.push(thumbnail_id);
+        }
+
+        sql += ") VALUES (?, ?";
+        if (thumbnail_id) {
+            sql += ", ?";
+        }
+        sql += ")";
+
+        const result = await executeQuery<OkPacket>(sql, values);
 
         res.status(201).json({
             id: result.insertId,
             name,
             description,
+            ...(thumbnail_id && { thumbnail_id }),
         });
     } catch (error: any) {
         res
@@ -58,7 +76,11 @@ router.post("/", async (req: Request, res: Response) => {
 router.get("/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const sql = "SELECT * FROM shows WHERE id = ?";
+        const sql = `
+            SELECT shows.*, images.cdn_path as thumbnail_cdn_path
+            FROM shows
+            LEFT JOIN images ON shows.thumbnail_id = images.id
+            WHERE shows.id = ?`;
         const result = await executeQuery<RowDataPacket[]>(sql, [id]);
         if (result.length === 0) {
             res.status(404).json({ error: "Show not found" });

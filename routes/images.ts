@@ -25,7 +25,17 @@ const storage = multer.diskStorage({
     },
 });
 
-const upload = multer({ storage: storage });
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    // Accept only image files based on mimetype and extension
+    const allowedExtensions = /\.(jpg|jpeg|png|gif|webp)$/i;
+    if (allowedExtensions.test(file.originalname)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Only image files with valid extensions are allowed") as any, false);
+    }
+};
+
+const upload = multer({ storage: storage, fileFilter });
 
 router.get("/", async (req: Request, res: Response) => {
     try {
@@ -75,7 +85,7 @@ router.post("/upload", upload.single("image"), async (req: Request, res: Respons
         }
         const file = req.file;
         const filename = file?.filename;
-        
+
         const filepath = `/images/${filename}`; // Full path to the uploaded file
 
         // Optionally, save file information to your database
