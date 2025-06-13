@@ -7,7 +7,7 @@ const router = Router();
 router.get("/", async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1; // Default to page 1 if not provided
-        const limit = 20; // Number of items per page
+        const limit = Math.min(parseInt(req.query.limit as string) || 20, 100); // Number of items per page, max 100
         const offset = (page - 1) * limit;
 
         const sql = `
@@ -29,6 +29,45 @@ router.get("/", async (req: Request, res: Response) => {
             totalItems: total,
             items: result,
         });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.get("/by-ids", async (req: Request, res: Response) => {
+    try {
+        let ids = req.query.ids;
+        if (!ids) {
+            res.status(400).json({ error: "'ids' query parameter is required" });
+            return;
+        }
+        if (typeof ids === "string") {
+            // Handle both comma-separated and single value
+            ids = ids.includes(",") ? ids.split(",") : [ids];
+        }
+        if (!Array.isArray(ids) || ids.length === 0) {
+            res.status(400).json({ error: "'ids' must be a non-empty array or comma-separated string" });
+            return;
+        }
+        // Ensure all ids are numbers
+        const idList = ids.map(id => Number(id)).filter(id => !isNaN(id));
+        if (idList.length === 0) {
+            res.status(400).json({ error: "No valid video ids provided" });
+            return;
+        }
+
+        const placeholders = idList.map(() => "?").join(",");
+        const sql = `
+            SELECT videos.*, images.cdn_path as thumbnail_cdn_path
+            FROM videos
+            LEFT JOIN images ON videos.thumbnail_id = images.id
+            WHERE videos.id IN (${placeholders})
+        `;
+        const result = await executeQuery<RowDataPacket[]>(sql, idList);
+
+        res.json({ items: result });
     } catch (error: any) {
         res
             .status(error.status || 500)

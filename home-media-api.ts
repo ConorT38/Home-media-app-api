@@ -35,7 +35,7 @@ app.get("/api/top/media", async (req: Request, res: Response) => {
     const sql = `SELECT videos.*, images.cdn_path as thumbnail_path 
                  FROM videos 
                  LEFT JOIN images on videos.thumbnail_id = images.id
-                 ORDER BY views DESC LIMIT 21`;
+                 ORDER BY uploaded DESC LIMIT 21`;
     const result = await executeQuery<RowDataPacket[]>(sql);
     console.log(result);
 

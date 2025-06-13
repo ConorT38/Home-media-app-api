@@ -11,7 +11,7 @@ router.get("/:searchTerm", async (req: Request, res: Response) => {
         const limit = parseInt(req.query.limit as string) || 10;
         const offset = (page - 1) * limit;
 
-        const sql = "SELECT * FROM videos WHERE title LIKE ? OR filename LIKE ? LIMIT ? OFFSET ?";
+        const sql = "SELECT * FROM videos WHERE title LIKE ? OR filename LIKE ? ORDER BY title ASC LIMIT ? OFFSET ?";
         const result = await executeQuery<RowDataPacket[]>(sql, [searchTerm, searchTerm, limit, offset]);
 
         const countSql = "SELECT COUNT(*) as total FROM videos WHERE title LIKE ? OR filename LIKE ?";
