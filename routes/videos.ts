@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { executeQuery } from "../utils/database.js";
 import { OkPacket, RowDataPacket } from "mysql2";
+import fs from "fs/promises";
+import path from "path";
 
 const router = Router();
 
@@ -212,12 +214,35 @@ router.put("/tag/:id", async (req: Request, res: Response): Promise<void> => {
 router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
     try {
         const id = req.params.id;
-        const sql = "DELETE FROM videos WHERE id = ?";
-        const result = await executeQuery<OkPacket>(sql, [id]);
+
+        // 1. Delete from movies table where video_id = id
+        const deleteMoviesSql = "DELETE FROM movies WHERE video_id = ?";
+        await executeQuery<OkPacket>(deleteMoviesSql, [id]);
+
+        // 2. Get file_path before deleting video
+        const getFilePathSql = "SELECT file_path FROM videos WHERE id = ?";
+        const fileRows = await executeQuery<RowDataPacket[]>(getFilePathSql, [id]);
+        let filePath: string | undefined = fileRows.length > 0 ? fileRows[0].file_path : undefined;
+
+        // 3. Delete from videos table
+        const deleteVideoSql = "DELETE FROM videos WHERE id = ?";
+        const result = await executeQuery<OkPacket>(deleteVideoSql, [id]);
 
         if (result.affectedRows === 0) {
             res.status(404).json({ error: "Video not found" });
             return;
+        }
+
+        // 4. Remove the file from disk if it exists
+        if (filePath) {
+            try {
+                await fs.rm(filePath);
+            } catch (err: any) {
+                // Ignore file not found, but log other errors
+                if (err.code !== "ENOENT") {
+                    console.error(`Failed to delete file at ${filePath}:`, err);
+                }
+            }
         }
 
         res.json({ message: "Video deleted successfully" });
