@@ -32,7 +32,7 @@ app.use("/api", routes);
 
 app.get("/api/top/media", async (req: Request, res: Response) => {
   try {
-    const sql = `SELECT videos.*, images.cdn_path as thumbnail_path 
+    const sql = `SELECT videos.*, images.cdn_path as thumbnail_cdn_path 
                  FROM videos 
                  LEFT JOIN images on videos.thumbnail_id = images.id
                  ORDER BY uploaded DESC LIMIT 21`;
