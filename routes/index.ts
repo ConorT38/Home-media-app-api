@@ -6,7 +6,6 @@ import torrentsRouter from "./torrents.js";
 import imagesRouter from "./images.js";
 
 const router = Router();
-
 router.use("/show", showsRouter);
 router.use("/video", videosRouter);
 router.use("/search", searchRouter);

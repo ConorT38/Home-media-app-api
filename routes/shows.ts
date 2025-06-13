@@ -123,5 +123,343 @@ router.put("/:id", async (req: Request, res: Response) => {
             .json({ error: error.message || "An unexpected error occurred" });
     }
 });
+router.post("/:seasonId/episodes", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const episodes: { videoId: number; episodeNumber: number }[] = req.body.episodes;
 
+        if (!Array.isArray(episodes) || episodes.length === 0) {
+            res.status(400).json({ error: "Request body must contain a non-empty 'episodes' array" });
+            return;
+        }
+
+        // Optionally, check if the show and season exist
+        const seasonCheckSql = "SELECT * FROM seasons WHERE id = ? AND show_id = ?";
+        const seasonCheck = await executeQuery<RowDataPacket[]>(seasonCheckSql, [seasonId, showId]);
+        if (seasonCheck.length === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+
+        const sql = `
+            INSERT INTO episodes (video_id, episode_number)
+            VALUES ${episodes.map(() => "(?, ?)").join(", ")}
+        `;
+        const values: (string | number)[] = [];
+        episodes.forEach(ep => {
+            values.push(seasonId, ep.videoId, ep.episodeNumber);
+        });
+
+        const result = await executeQuery<OkPacket>(sql, values);
+
+        res.status(201).json({
+            inserted: result.affectedRows,
+            season_id: seasonId,
+            episodes: episodes.map((ep, idx) => ({
+                video_id: ep.videoId,
+                episode_number: ep.episodeNumber,
+                // Optionally, you can return the inserted IDs if needed
+            })),
+        });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.delete("/:seasonId/episodes", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const { episodeIds } = req.body;
+
+        if (!Array.isArray(episodeIds) || episodeIds.length === 0) {
+            res.status(400).json({ error: "Request body must contain a non-empty 'episodeIds' array" });
+            return;
+        }
+
+        // Optionally, check if the season exists for the show
+        const seasonCheckSql = "SELECT * FROM seasons WHERE id = ? AND show_id = ?";
+        const seasonCheck = await executeQuery<RowDataPacket[]>(seasonCheckSql, [seasonId, showId]);
+        if (seasonCheck.length === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+
+        const placeholders = episodeIds.map(() => "?").join(", ");
+        const sql = `DELETE FROM episodes WHERE season_id = ? AND id IN (${placeholders})`;
+        const values = [seasonId, ...episodeIds];
+
+        const result = await executeQuery<OkPacket>(sql, values);
+
+        res.json({ deleted: result.affectedRows, episodeIds });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.get("/", async (req: Request, res: Response) => {
+    try {
+        const { showId } = req.params;
+        const sql = "SELECT * FROM seasons WHERE show_id = ?";
+        const seasons = await executeQuery<RowDataPacket[]>(sql, [showId]);
+        res.json(seasons);
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.get("/:seasonId", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const sql = "SELECT * FROM seasons WHERE id = ? AND show_id = ?";
+        const seasons = await executeQuery<RowDataPacket[]>(sql, [seasonId, showId]);
+        if (seasons.length === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+        res.json(seasons[0]);
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.post("/", async (req: Request, res: Response) => {
+    try {
+        const { showId } = req.params;
+        console.log(showId);
+        const {seasonNumber } = req.body;
+        if (typeof seasonNumber !== "number") {
+            res.status(400).json({ error: "Missing required fields: seasonNumber" });
+            return;
+        }
+        const sql = "INSERT INTO seasons (show_id, season_number) VALUES (?, ?, ?)";
+        const result = await executeQuery<OkPacket>(sql, [showId, seasonNumber]);
+        res.status(201).json({ id: result.insertId, show_id: showId, season_number: seasonNumber });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.put("/:showId/season/:seasonId", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const { seasonNumber } = req.body;
+        if (typeof seasonNumber !== "number") {
+            res.status(400).json({ error: "'seasonNumber' must be provided" });
+            return;
+        }
+        const fields: string[] = [];
+        const values: (string | number)[] = [];
+
+        if (typeof seasonNumber === "number") {
+            fields.push("season_number = ?");
+            values.push(seasonNumber);
+        }
+        values.push(seasonId, showId);
+        const sql = `UPDATE seasons SET ${fields.join(", ")} WHERE id = ? AND show_id = ?`;
+        const result = await executeQuery<OkPacket>(sql, values);
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+        res.json({ updated: result.affectedRows });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.delete("/:showId/season/:seasonId", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const sql = "DELETE FROM seasons WHERE id = ? AND show_id = ?";
+        const result = await executeQuery<OkPacket>(sql, [seasonId, showId]);
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+        res.json({ deleted: result.affectedRows });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+///////// Seasons routes ////////
+
+router.post("/:showId/season/:seasonId/episodes", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const episodes: { videoId: number; episodeNumber: number }[] = req.body.episodes;
+
+        if (!Array.isArray(episodes) || episodes.length === 0) {
+            res.status(400).json({ error: "Request body must contain a non-empty 'episodes' array" });
+            return;
+        }
+
+        // Optionally, check if the show and season exist
+        const seasonCheckSql = "SELECT * FROM seasons WHERE id = ? AND show_id = ?";
+        const seasonCheck = await executeQuery<RowDataPacket[]>(seasonCheckSql, [seasonId, showId]);
+        if (seasonCheck.length === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+
+        const sql = `
+            INSERT INTO episodes (show_id, video_id, episode_number)
+            VALUES ${episodes.map(() => "(?, ?, ?)").join(", ")}
+        `;
+        const values: (string | number)[] = [];
+        episodes.forEach(ep => {
+            values.push(showId, ep.videoId, ep.episodeNumber);
+        });
+
+        const result = await executeQuery<OkPacket>(sql, values);
+
+        res.status(201).json({
+            inserted: result.affectedRows,
+            season_id: seasonId,
+            episodes: episodes.map((ep, idx) => ({
+                video_id: ep.videoId,
+                episode_number: ep.episodeNumber,
+                // Optionally, you can return the inserted IDs if needed
+            })),
+        });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.delete("/:showId/season/:seasonId/episodes", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const { episodeIds } = req.body;
+
+        if (!Array.isArray(episodeIds) || episodeIds.length === 0) {
+            res.status(400).json({ error: "Request body must contain a non-empty 'episodeIds' array" });
+            return;
+        }
+
+        // Optionally, check if the season exists for the show
+        const seasonCheckSql = "SELECT * FROM seasons WHERE id = ? AND show_id = ?";
+        const seasonCheck = await executeQuery<RowDataPacket[]>(seasonCheckSql, [seasonId, showId]);
+        if (seasonCheck.length === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+
+        const placeholders = episodeIds.map(() => "?").join(", ");
+        const sql = `DELETE FROM episodes WHERE season_id = ? AND id IN (${placeholders})`;
+        const values = [seasonId, ...episodeIds];
+
+        const result = await executeQuery<OkPacket>(sql, values);
+
+        res.json({ deleted: result.affectedRows, episodeIds });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.get("/:showId/season/", async (req: Request, res: Response) => {
+    try {
+        const { showId } = req.params;
+        const sql = `
+            SELECT 
+            s.*, 
+            v.*, 
+            e.*, 
+            i.cdn_path AS thumbnail_cdn_path
+            FROM 
+            seasons AS s
+            INNER JOIN 
+            episodes AS e ON e.show_id = s.show_id
+            INNER JOIN 
+            videos AS v ON e.video_id = v.id
+            LEFT JOIN 
+            images AS i ON v.thumbnail_id = i.id
+            WHERE 
+            s.show_id = ?
+        `;
+        const seasons = await executeQuery<RowDataPacket[]>(sql, [showId]);
+        res.json(seasons);
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.get("/:showId/season/:seasonNumber", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonNumber } = req.params;
+        const sql = "SELECT * FROM seasons WHERE season_number = ? AND show_id = ?";
+        const seasons = await executeQuery<RowDataPacket[]>(sql, [seasonNumber, showId]);
+        if (seasons.length === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+        res.json(seasons[0]);
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.post("/:showId/season/", async (req: Request, res: Response) => {
+    try {
+        const { showId } = req.params;
+        console.log(showId);
+        const {seasonNumber } = req.body;
+        if (typeof seasonNumber !== "number") {
+            res.status(400).json({ error: "Missing required fields: seasonNumber" });
+            return;
+        }
+        const sql = "INSERT INTO seasons (show_id, season_number) VALUES (?, ?)";
+        const result = await executeQuery<OkPacket>(sql, [showId, seasonNumber]);
+        res.status(201).json({ id: result.insertId, show_id: showId, season_number: seasonNumber });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.put("/:showId/season/:seasonId", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const { seasonNumber } = req.body;
+        if (typeof seasonNumber !== "number") {
+            res.status(400).json({ error: "'seasonNumber' must be provided" });
+            return;
+        }
+        const fields: string[] = [];
+        const values: (string | number)[] = [];
+
+        if (typeof seasonNumber === "number") {
+            fields.push("season_number = ?");
+            values.push(seasonNumber);
+        }
+        values.push(seasonId, showId);
+        const sql = `UPDATE seasons SET ${fields.join(", ")} WHERE id = ? AND show_id = ?`;
+        const result = await executeQuery<OkPacket>(sql, values);
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+        res.json({ updated: result.affectedRows });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.delete("/:showId/season/:seasonId", async (req: Request, res: Response) => {
+    try {
+        const { showId, seasonId } = req.params;
+        const sql = "DELETE FROM seasons WHERE id = ? AND show_id = ?";
+        const result = await executeQuery<OkPacket>(sql, [seasonId, showId]);
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: "Season not found for the given show" });
+            return;
+        }
+        res.json({ deleted: result.affectedRows });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
 export default router;
