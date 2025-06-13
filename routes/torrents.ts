@@ -81,5 +81,75 @@ router.post("/download", async (req: Request, res: Response) => {
             .json({ error: error.message || "An unexpected error occurred" });
     }
 });
+router.post("/stop", async (req: Request, res: Response) => {
+    try {
+        const id = req.body.id as string;
+        if (!id) {
+            res.status(400).json({ error: "Missing required body parameter: id" });
+            return;
+        }
+        const command = `transmission-remote --auth pi:raspberry -t ${id} -S`;
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing command: ${stderr}`);
+                res.status(500).json({ error: "Failed to stop torrent" });
+                return;
+            }
+            res.json({ message: "Torrent stopped successfully", output: stdout });
+        });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.post("/start", async (req: Request, res: Response) => {
+    try {
+        const id = req.body.id as string;
+        if (!id) {
+            res.status(400).json({ error: "Missing required body parameter: id" });
+            return;
+        }
+        const command = `transmission-remote --auth pi:raspberry -t ${id} -s`;
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing command: ${stderr}`);
+                res.status(500).json({ error: "Failed to start torrent" });
+                return;
+            }
+            res.json({ message: "Torrent started successfully", output: stdout });
+        });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.post("/remove", async (req: Request, res: Response) => {
+    try {
+        const id = req.body.id as string;
+        const deleteData = req.body.deleteData === true;
+        if (!id) {
+            res.status(400).json({ error: "Missing required body parameter: id" });
+            return;
+        }
+        const flag = deleteData ? "-rad" : "-r";
+        const command = `transmission-remote --auth pi:raspberry -t ${id} ${flag}`;
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing command: ${stderr}`);
+                res.status(500).json({ error: "Failed to remove torrent" });
+                return;
+            }
+            res.json({ message: "Torrent removed successfully", output: stdout });
+        });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
 
 export default router;
