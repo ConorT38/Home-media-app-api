@@ -220,7 +220,7 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
         await executeQuery<OkPacket>(deleteMoviesSql, [id]);
 
         // 2. Get file_path before deleting video
-        const getFilePathSql = "SELECT file_path FROM videos WHERE id = ?";
+        const getFilePathSql = "SELECT filename FROM videos WHERE id = ?";
         const fileRows = await executeQuery<RowDataPacket[]>(getFilePathSql, [id]);
         let filePath: string | undefined = fileRows.length > 0 ? fileRows[0].file_path : undefined;
 
