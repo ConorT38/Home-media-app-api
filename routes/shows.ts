@@ -11,11 +11,23 @@ router.get("/", async (req: Request, res: Response) => {
         const limit = 20; // Number of items per page
         const offset = (page - 1) * limit;
 
-        const sql = ` 
-            SELECT shows.*, images.cdn_path as thumbnail_cdn_path
+        const sql = `
+            SELECT 
+            shows.*, 
+            images.cdn_path as thumbnail_cdn_path,
+            (
+                SELECT COUNT(*) 
+                FROM seasons 
+                WHERE seasons.show_id = shows.id
+            ) AS total_seasons,
+            (
+                SELECT COUNT(*) 
+                FROM episodes 
+                WHERE episodes.show_id = shows.id
+            ) AS total_episodes
             FROM shows
             LEFT JOIN images ON shows.thumbnail_id = images.id
-            ORDER BY id LIMIT ? OFFSET ?`;
+            ORDER BY shows.id LIMIT ? OFFSET ?`;
         const result = (await executeQuery<RowDataPacket[]>(sql, [limit, offset])) as Show[];
 
         const countSql = "SELECT COUNT(*) as total FROM shows";
@@ -123,7 +135,8 @@ router.put("/:id", async (req: Request, res: Response) => {
             .json({ error: error.message || "An unexpected error occurred" });
     }
 });
-router.post("/:seasonId/episodes", async (req: Request, res: Response) => {
+
+router.post("/:showId/season/:seasonId/episodes", async (req: Request, res: Response) => {
     try {
         const { showId, seasonId } = req.params;
         const episodes: { videoId: number; episodeNumber: number }[] = req.body.episodes;
@@ -142,15 +155,26 @@ router.post("/:seasonId/episodes", async (req: Request, res: Response) => {
         }
 
         const sql = `
-            INSERT INTO episodes (video_id, episode_number)
-            VALUES ${episodes.map(() => "(?, ?)").join(", ")}
+            INSERT INTO episodes (video_id, episode_number, season_id, show_id)
+            VALUES ${episodes.map(() => "(?, ?, ?, ?)").join(", ")}
         `;
         const values: (string | number)[] = [];
         episodes.forEach(ep => {
-            values.push(seasonId, ep.videoId, ep.episodeNumber);
+            values.push(ep.videoId, ep.episodeNumber, seasonId, showId);
         });
 
         const result = await executeQuery<OkPacket>(sql, values);
+
+        for (const ep of episodes) {
+            await executeQuery<OkPacket>(
+                `UPDATE videos
+                 JOIN episodes ON videos.id = episodes.video_id
+                 JOIN shows ON episodes.show_id = shows.id
+                 SET videos.thumbnail_id = shows.thumbnail_id
+                 WHERE videos.id = ? AND shows.id = ?`,
+                [ep.videoId, showId]
+            );
+        }
 
         res.status(201).json({
             inserted: result.affectedRows,
@@ -458,6 +482,30 @@ router.delete("/:showId/season/:seasonId", async (req: Request, res: Response) =
             return;
         }
         res.json({ deleted: result.affectedRows });
+    } catch (error: any) {
+        res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
+router.get("/:id/season/:seasonNumber/episode/:episodeNumber", async (req: Request, res: Response) => {
+    try {
+        const { id, seasonNumber, episodeNumber } = req.params;
+        const sql = `
+            SELECT v.*, i.cdn_path AS thumbnail_cdn_path
+            FROM shows s
+            INNER JOIN seasons se ON se.show_id = s.id
+            INNER JOIN episodes e ON e.season_id = se.id AND e.show_id = s.id
+            INNER JOIN videos v ON v.id = e.video_id
+            LEFT JOIN images i ON v.thumbnail_id = i.id
+            WHERE s.id = ? AND se.season_number = ? AND e.episode_number = ?
+            LIMIT 1
+        `;
+        const result = await executeQuery<RowDataPacket[]>(sql, [id, seasonNumber, episodeNumber]);
+        if (result.length === 0) {
+            res.status(404).json({ error: "Episode not found" });
+            return;
+        }
+        res.json(result[0]);
     } catch (error: any) {
         res.status(error.status || 500).json({ error: error.message || "An unexpected error occurred" });
     }
