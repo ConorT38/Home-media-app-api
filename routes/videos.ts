@@ -2,7 +2,6 @@ import { Router, Request, Response } from "express";
 import { executeQuery } from "../utils/database.js";
 import { OkPacket, RowDataPacket } from "mysql2";
 import fs from "fs/promises";
-import path from "path";
 
 const router = Router();
 
@@ -109,7 +108,7 @@ router.put("/:id",
     async (req: Request, res: Response): Promise<void> => {
         try {
             const id = req.params.id;
-            const { title, thumbnailId} = req.body;
+            const { title, thumbnailId } = req.body;
             console.log("Updating video with ID:", id, "Title:", title, "Thumbnail ID:", thumbnailId);
             if (title === undefined) {
                 res.status(400).json({ error: "Missing 'title' in request body" });
@@ -126,6 +125,33 @@ router.put("/:id",
             }
             const result = await executeQuery<OkPacket>(sql, params);
             console.log(`${result.affectedRows} record(s) updated`);
+
+            // Fetch the current filename
+            const getFileSql = "SELECT filename FROM videos WHERE id = ?";
+            const fileRows = await executeQuery<RowDataPacket[]>(getFileSql, [id]);
+            if (fileRows.length === 0) {
+                res.status(404).json({ error: "Video not found" });
+                return;
+            }
+            const currentFilename = fileRows[0].filename;
+
+            // Determine the new filename
+            const extension = currentFilename.split('.').pop(); // Get the file extension
+            const newFilename = `${title}.${extension}`;
+
+            // Update the filename in the database
+            const updateFilenameSql = "UPDATE videos SET filename = ? WHERE id = ?";
+            await executeQuery<OkPacket>(updateFilenameSql, [newFilename, id]);
+
+            // Rename the actual file on disk
+            try {
+                await fs.rename(currentFilename, newFilename);
+                console.log(`File renamed from ${currentFilename} to ${newFilename}`);
+            } catch (err: any) {
+                console.error(`Failed to rename file: ${err.message}`);
+                res.status(500).json({ error: "Failed to rename file on disk" });
+                return;
+            }
 
             res.send(req.body);
         } catch (error: any) {

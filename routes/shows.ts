@@ -252,7 +252,7 @@ router.post("/", async (req: Request, res: Response) => {
     try {
         const { showId } = req.params;
         console.log(showId);
-        const {seasonNumber } = req.body;
+        const { seasonNumber } = req.body;
         if (typeof seasonNumber !== "number") {
             res.status(400).json({ error: "Missing required fields: seasonNumber" });
             return;
@@ -427,11 +427,11 @@ router.get("/:showId/season/:seasonNumber", async (req: Request, res: Response) 
     }
 });
 
-router.post("/:showId/season/", async (req: Request, res: Response) => {
+router.post("/:showId/season", async (req: Request, res: Response) => {
     try {
         const { showId } = req.params;
         console.log(showId);
-        const {seasonNumber } = req.body;
+        const { seasonNumber } = req.body;
         if (typeof seasonNumber !== "number") {
             res.status(400).json({ error: "Missing required fields: seasonNumber" });
             return;
