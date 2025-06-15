@@ -279,4 +279,29 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
     }
 });
 
+router.get("/:id/episode-info", async (req: Request, res: Response): Promise<void> => {
+    try {
+        const videoId = req.params.id;
+
+        const sql = `
+            SELECT episodes.show_id, seasons.season_number, episodes.episode_number
+            FROM episodes
+            INNER JOIN seasons ON episodes.season_id = seasons.id
+            WHERE episodes.video_id = ?
+        `;
+        const result = await executeQuery<RowDataPacket[]>(sql, [videoId]);
+
+        if (result.length === 0) {
+            res.status(404).json({ error: "Video is not associated with any episode" });
+            return;
+        }
+
+        res.json(result[0]);
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
 export default router;
