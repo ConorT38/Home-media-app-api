@@ -165,17 +165,6 @@ router.post("/:showId/season/:seasonId/episodes", async (req: Request, res: Resp
 
         const result = await executeQuery<OkPacket>(sql, values);
 
-        for (const ep of episodes) {
-            await executeQuery<OkPacket>(
-                `UPDATE videos
-                 JOIN episodes ON videos.id = episodes.video_id
-                 JOIN shows ON episodes.show_id = shows.id
-                 SET videos.thumbnail_id = shows.thumbnail_id
-                 WHERE videos.id = ? AND shows.id = ?`,
-                [ep.videoId, showId]
-            );
-        }
-
         res.status(201).json({
             inserted: result.affectedRows,
             season_id: seasonId,

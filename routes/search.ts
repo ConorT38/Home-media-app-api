@@ -106,4 +106,43 @@ router.get("/:searchTerm", async (req: Request, res: Response) => {
     }
 });
 
+router.get("/videos/:searchTerm", async (req: Request, res: Response) => {
+    try {
+        const searchTerm = `%${req.params.searchTerm}%`;
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 12;
+        const offset = (page - 1) * limit;
+
+        const videosSql = `
+            SELECT v.*, i.cdn_path AS thumbnail_cdn_path
+            FROM videos v
+            LEFT JOIN images i ON v.thumbnail_id = i.id
+            WHERE v.title LIKE ?
+            ORDER BY v.title ASC
+            LIMIT ? OFFSET ?`;
+        const videos = await executeQuery<RowDataPacket[]>(videosSql, [searchTerm, limit, offset]);
+
+        const countVideosSql = `
+            SELECT COUNT(*) as total
+            FROM videos v
+            WHERE v.title LIKE ?`;
+        const countVideosResult = await executeQuery<RowDataPacket[]>(countVideosSql, [searchTerm]);
+        const totalVideos = countVideosResult[0]?.total || 0;
+
+        res.json({
+            data: videos,
+            pagination: {
+                total: totalVideos,
+                page,
+                limit,
+                totalPages: Math.ceil(totalVideos / limit),
+            },
+        });
+    } catch (error: any) {
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
+
 export default router;
