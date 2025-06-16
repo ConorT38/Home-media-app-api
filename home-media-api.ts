@@ -1,4 +1,7 @@
 import express, { Request, Response } from "express";
+
+// Extend the Request interface to include the logger property
+
 import cors from "cors";
 import { RowDataPacket } from "mysql2/promise";
 import fs from "fs";
@@ -37,7 +40,21 @@ const consoleLogStream = createStream("console.log", {
 const originalConsoleLog = console.log;
 console.log = (...args) => {
   originalConsoleLog(...args);
-  consoleLogStream.write(args.map(arg => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" ") + "\n");
+  const formattedMessage = args
+    .map(arg => (typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)))
+    .join(" ");
+  const timestamp = new Date().toISOString();
+  consoleLogStream.write(`[${timestamp}] [INFO] ${formattedMessage}\n`);
+};
+
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  originalConsoleError(...args);
+  const formattedMessage = args
+    .map(arg => (typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)))
+    .join(" ");
+  const timestamp = new Date().toISOString();
+  consoleLogStream.write(`[${timestamp}] [ERROR] ${formattedMessage}\n`);
 };
 
 // Use the routes
