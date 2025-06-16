@@ -378,21 +378,34 @@ router.get("/:showId/season/", async (req: Request, res: Response) => {
     try {
         const { showId } = req.params;
         const sql = `
-            SELECT 
-            s.*, 
-            v.*, 
-            e.*, 
-            i.cdn_path AS thumbnail_cdn_path
-            FROM 
-            seasons AS s
-            INNER JOIN 
-            episodes AS e ON e.show_id = s.show_id
-            INNER JOIN 
-            videos AS v ON e.video_id = v.id
-            LEFT JOIN 
-            images AS i ON v.thumbnail_id = i.id
-            WHERE 
-            s.show_id = ?
+            SELECT
+    s.id AS season_db_id, 
+    s.season_number,
+    s.show_id,
+    e.video_id,
+    e.episode_number,
+    e.season_id,
+    v.id AS video_db_id, 
+    v.filename,
+    v.cdn_path,
+    v.title,
+    v.uploaded,
+    v.views,
+    v.entertainment_type,
+    v.thumbnail_id,
+    i.cdn_path AS thumbnail_cdn_path
+FROM
+    seasons AS s
+INNER JOIN
+    episodes AS e ON e.season_id = s.id AND e.show_id = s.show_id 
+INNER JOIN
+    videos AS v ON e.video_id = v.id
+LEFT JOIN
+    images AS i ON v.thumbnail_id = i.id
+WHERE
+    s.show_id = ?
+ORDER BY
+    s.season_number ASC, e.episode_number ASC; 
         `;
         const seasons = await executeQuery<RowDataPacket[]>(sql, [showId]);
         res.json(seasons);
