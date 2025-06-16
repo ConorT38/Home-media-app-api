@@ -27,6 +27,19 @@ const accessLogStream = createStream("access.log", {
 // Middleware to log requests
 app.use(morgan("combined", { stream: accessLogStream }));
 
+// Redirect console logs to a file
+const consoleLogStream = createStream("console.log", {
+  size: "5M", // rotate every 5MB
+  interval: "1d", // rotate daily
+  path: logDirectory,
+});
+
+const originalConsoleLog = console.log;
+console.log = (...args) => {
+  originalConsoleLog(...args);
+  consoleLogStream.write(args.map(arg => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" ") + "\n");
+};
+
 // Use the routes
 app.use("/api", routes);
 
