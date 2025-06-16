@@ -135,9 +135,10 @@ router.put("/:id",
             }
             const currentFilename = fileRows[0].filename;
 
-            // Determine the new filename
+            // Determine the new filename while preserving the directory structure
             const extension = currentFilename.split('.').pop(); // Get the file extension
-            const newFilename = `${title}.${extension}`;
+            const directory = currentFilename.substring(0, currentFilename.lastIndexOf('/')); // Get the directory path
+            const newFilename = `${directory}/${title}.${extension}`;
 
             // Update the filename in the database
             const updateFilenameSql = "UPDATE videos SET filename = ? WHERE id = ?";
@@ -262,6 +263,7 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
         // 4. Remove the file from disk if it exists
         if (filePath) {
             try {
+                console.log(`Attempting to delete file at ${filePath}`);
                 await fs.rm(filePath);
             } catch (err: any) {
                 // Ignore file not found, but log other errors
