@@ -138,7 +138,10 @@ router.put("/:id",
             // Determine the new filename while preserving the directory structure
             const extension = currentFilename.split('.').pop(); // Get the file extension
             const directory = currentFilename.substring(0, currentFilename.lastIndexOf('/')); // Get the directory path
-            const newFilename = `${directory}/${title}.${extension}`;
+            let scrubbedTitle = title.replace(/ /g, "_"); // Replace spaces with underscores
+            const chars = /['`*{}[\]()>#+\-!$]/g; // Characters to remove
+            scrubbedTitle = scrubbedTitle.replace(chars, ""); // Remove unwanted characters
+            const newFilename = `${directory}/${scrubbedTitle}.${extension}`;
 
             // Update the filename in the database
             const updateFilenameSql = "UPDATE videos SET filename = ? WHERE id = ?";
