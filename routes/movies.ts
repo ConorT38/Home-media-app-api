@@ -13,7 +13,9 @@ router.get("/", async (req: Request, res: Response) => {
 
         const sql = `
             SELECT 
-            movies.*, 
+            movies.id,
+            movies.genre,
+            videos.title,
             images.cdn_path as thumbnail_cdn_path
             FROM movies
             INNER JOIN videos ON movies.video_id = videos.id
