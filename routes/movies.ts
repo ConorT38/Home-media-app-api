@@ -15,7 +15,7 @@ router.get("/", async (req: Request, res: Response) => {
             SELECT 
             movies.id,
             movies.genre,
-            videos.title,
+            videos.title as name,
             images.cdn_path as thumbnail_cdn_path
             FROM movies
             INNER JOIN videos ON movies.video_id = videos.id
