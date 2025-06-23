@@ -67,4 +67,49 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
 });
 
+router.put("/:id", async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = req.params.id;
+        const { genre, name, thumbnailId } = req.body;
+
+        if (name === undefined) {
+            res.status(400).json({ error: "Missing 'name' in request body" });
+            return;
+        }
+
+        let sql: string;
+        let params: any[];
+
+        if (thumbnailId !== undefined) {
+            sql = `
+                UPDATE movies
+                INNER JOIN videos ON movies.video_id = videos.id
+                SET videos.title = ?, movies.genre = ?, videos.thumbnail_id = ?
+                WHERE movies.id = ?`;
+            params = [name, genre, thumbnailId, id];
+        } else {
+            sql = `
+                UPDATE movies
+                INNER JOIN videos ON movies.video_id = videos.id
+                SET videos.title = ?, movies.genre = ?
+                WHERE movies.id = ?`;
+            params = [name, genre, id];
+        }
+
+        const result = await executeQuery<OkPacket>(sql, params);
+        console.log(`${result.affectedRows} record(s) updated`);
+
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: "Movie not found" });
+            return;
+        }
+
+        res.send(req.body);
+    } catch (error: any) {
+        console.error(error);
+        res
+            .status(error.status || 500)
+            .json({ error: error.message || "An unexpected error occurred" });
+    }
+});
 export default router;
