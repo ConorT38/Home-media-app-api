@@ -157,6 +157,11 @@ router.put("/:id",
                 return;
             }
 
+            // Update the movies.name where movies.video_id = videos.id
+            const updateMoviesSql = "UPDATE movies SET name = ? WHERE video_id = ?";
+            await executeQuery<OkPacket>(updateMoviesSql, [title, id]);
+            console.log(`Movies table updated with name: ${title} for video_id: ${id}`);
+
             res.send(req.body);
         } catch (error: any) {
             console.error(error);
@@ -245,6 +250,7 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
     try {
         const id = req.params.id;
 
+        console.debug(`Deleting video with ID: ${id}`);
         // 1. Delete from movies table where video_id = id
         const deleteMoviesSql = "DELETE FROM movies WHERE video_id = ?";
         await executeQuery<OkPacket>(deleteMoviesSql, [id]);
@@ -252,7 +258,9 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
         // 2. Get file_path before deleting video
         const getFilePathSql = "SELECT filename FROM videos WHERE id = ?";
         const fileRows = await executeQuery<RowDataPacket[]>(getFilePathSql, [id]);
-        let filePath: string | undefined = fileRows.length > 0 ? fileRows[0].file_path : undefined;
+        let filePath: string | undefined = fileRows.length > 0 ? fileRows[0].filename : undefined;
+
+        console.debug(`File path for video ID ${id}: ${filePath}`);
 
         // 3. Delete from videos table
         const deleteVideoSql = "DELETE FROM videos WHERE id = ?";
