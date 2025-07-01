@@ -134,7 +134,6 @@ router.put("/:id",
                 return;
             }
             const currentFilename = fileRows[0].filename;
-            const currentCdnPath = fileRows[0].cdn_path;
 
             // Determine the new filename while preserving the directory structure
             const extension = currentFilename.split('.').pop(); // Get the file extension
@@ -144,9 +143,8 @@ router.put("/:id",
             scrubbedTitle = scrubbedTitle.replace(chars, ""); // Remove unwanted characters
             const newFilename = `${directory}/${scrubbedTitle}.${extension}`;
 
-            // Determine the new cdn_path
-            const cdnDirectory = currentCdnPath.substring(0, currentCdnPath.lastIndexOf('/')); // Get the CDN directory path
-            const newCdnPath = `${cdnDirectory}/${scrubbedTitle}.${extension}`;
+            // Determine the new cdn_path by removing the first root and root+1 directory from the new filename
+            const newCdnPath = newFilename.split('/').slice(3).join('/'); // Remove /mnt/ext1 or equivalent
 
             // Update the filename and cdn_path in the database
             const updateFilenameSql = "UPDATE videos SET filename = ?, cdn_path = ? WHERE id = ?";
