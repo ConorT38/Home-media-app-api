@@ -127,13 +127,14 @@ router.put("/:id",
             console.log(`${result.affectedRows} record(s) updated`);
 
             // Fetch the current filename
-            const getFileSql = "SELECT filename FROM videos WHERE id = ?";
+            const getFileSql = "SELECT filename, cdn_path FROM videos WHERE id = ?";
             const fileRows = await executeQuery<RowDataPacket[]>(getFileSql, [id]);
             if (fileRows.length === 0) {
                 res.status(404).json({ error: "Video not found" });
                 return;
             }
             const currentFilename = fileRows[0].filename;
+            const currentCdnPath = fileRows[0].cdn_path;
 
             // Determine the new filename while preserving the directory structure
             const extension = currentFilename.split('.').pop(); // Get the file extension
@@ -143,9 +144,13 @@ router.put("/:id",
             scrubbedTitle = scrubbedTitle.replace(chars, ""); // Remove unwanted characters
             const newFilename = `${directory}/${scrubbedTitle}.${extension}`;
 
-            // Update the filename in the database
-            const updateFilenameSql = "UPDATE videos SET filename = ? WHERE id = ?";
-            await executeQuery<OkPacket>(updateFilenameSql, [newFilename, id]);
+            // Determine the new cdn_path
+            const cdnDirectory = currentCdnPath.substring(0, currentCdnPath.lastIndexOf('/')); // Get the CDN directory path
+            const newCdnPath = `${cdnDirectory}/${scrubbedTitle}.${extension}`;
+
+            // Update the filename and cdn_path in the database
+            const updateFilenameSql = "UPDATE videos SET filename = ?, cdn_path = ? WHERE id = ?";
+            await executeQuery<OkPacket>(updateFilenameSql, [newFilename, newCdnPath, id]);
 
             // Rename the actual file on disk
             try {
