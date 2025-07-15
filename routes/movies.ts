@@ -20,6 +20,7 @@ router.get("/", async (req: Request, res: Response) => {
             FROM movies
             INNER JOIN videos ON movies.video_id = videos.id
             LEFT JOIN images ON videos.thumbnail_id = images.id
+            WHERE videos.browser_friendly = TRUE
             ORDER BY movies.id LIMIT ? OFFSET ?`;
         const result = (await executeQuery<RowDataPacket[]>(sql, [limit, offset])) as Show[];
 
@@ -52,7 +53,8 @@ router.get("/:id", async (req: Request, res: Response) => {
             FROM movies
             INNER JOIN videos ON movies.video_id = videos.id
             LEFT JOIN images ON videos.thumbnail_id = images.id
-            WHERE movies.id = ?`;
+            WHERE movies.id = ?
+            AND videos.browser_friendly = TRUE`;
         const result = await executeQuery<RowDataPacket[]>(sql, [id]);
 
         if (result.length === 0) {

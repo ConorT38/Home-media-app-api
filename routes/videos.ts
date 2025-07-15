@@ -65,6 +65,7 @@ router.get("/by-ids", async (req: Request, res: Response) => {
             FROM videos
             LEFT JOIN images ON videos.thumbnail_id = images.id
             WHERE videos.id IN (${placeholders})
+            AND browser_friendly = TRUE
         `;
         const result = await executeQuery<RowDataPacket[]>(sql, idList);
 
@@ -88,7 +89,8 @@ router.get("/:id", async (req: Request, res: Response) => {
         const sql = `SELECT videos.*, images.cdn_path as thumbnail_cdn_path
             FROM videos
             LEFT JOIN images ON videos.thumbnail_id = images.id
-            WHERE videos.id = ?`;
+            WHERE videos.id = ?
+            AND browser_friendly = TRUE`;
         const result = await executeQuery<RowDataPacket[]>(sql, [id]);
 
         if (result.length === 0) {
