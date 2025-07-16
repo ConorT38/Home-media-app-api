@@ -15,6 +15,7 @@ router.get("/", async (req: Request, res: Response) => {
             SELECT videos.*, images.cdn_path as thumbnail_cdn_path
             FROM videos
             LEFT JOIN images ON videos.thumbnail_id = images.id
+            WHERE videos.browser_friendly = TRUE
             ORDER BY videos.id
             LIMIT ? OFFSET ?
         `;
